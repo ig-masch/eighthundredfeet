@@ -46,7 +46,9 @@ function loadMessages(filename, includePingPong) {
         break;
       }
       while (zero == -1) {
-        pages.append(Buffer.alloc(PAGE_SIZE));
+        // replaced to try to patch it
+        //pages.append(Buffer.alloc(PAGE_SIZE));
+        pages.push(Buffer.alloc(PAGE_SIZE));
         bytes = fs.readSync(fd, pages[pages.length - 1], 0, PAGE_SIZE);
         totBytes += bytes;
         everything = Buffer.concat(pages);
@@ -72,6 +74,14 @@ function loadMessages(filename, includePingPong) {
     }
     pages = [pages[pages.length - 1], pages[0]];
   }
+
+
+  // Dirty clean-up of msgStrings -- only allow ["{\\"msg' or "a[\"{\\\"msg" strings
+  // Avoids issues with weird ass POST requests etc. that also ended up in there
+  msgStrings = msgStrings.filter((msg) => 
+    msg.startsWith('["{\\"msg') || msg.startsWith('a[\"{\\\"msg')
+  );
+
   let results = msgStrings.map((m) => DDPMessage.unwrap(m));
   if (!includePingPong) {
     results = results.filter((m) => m.msg != 'ping' && m.msg != 'pong');
